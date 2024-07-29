@@ -3,7 +3,6 @@ require("dotenv").config();
 const app = require('./app'); 
 const cors = require('cors');
 
-app.use(cors());
 
 const url = process.env.DATABASE
 async function connectToDB(){
