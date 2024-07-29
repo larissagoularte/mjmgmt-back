@@ -10,23 +10,17 @@ const cookieParser = require('cookie-parser');
 
 const app = express();
 
-const allowedOrigins = ['http://localhost:3000', 'http://192.168.1.158:3000', 'https://mjmgmt-front.pages.dev/'];
-
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 
 app.use(cors({
-    origin: function(origin, callback) {
-        if (!origin) return callback(null, true);
-        if (allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
-    credentials: true
-}));
+    origin: 'https://mjmgmt-front.pages.dev',
+    credentials: true,
+    allowedHeaders: "Content-Type, Accept, Origin, Timestamp",
+    preflightContinue: false,
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+  }));
 
 app.use(express.json());
 app.use(cookieParser());
