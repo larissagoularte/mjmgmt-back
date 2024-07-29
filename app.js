@@ -10,7 +10,7 @@ const cookieParser = require('cookie-parser');
 
 const app = express();
 
-const allowedOrigins = ['http://localhost:3000', 'http://192.168.1.158:3000'];
+const allowedOrigins = ['http://localhost:3000', 'http://192.168.1.158:3000', 'https://mjmgmt-back.onrender.com/'];
 
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
