@@ -53,7 +53,6 @@ exports.addListing = async (req, res) => {
                     const fileUrl = await uploadToR2(file);
                     fileUrls.push(fileUrl);
                 }
-                listingData.basicInfo.media = fileUrls;
             } catch (error) {
                 return res.status(500).json({ message: 'Error uploading files to R2', error: error.message });
             }
