@@ -52,12 +52,14 @@ exports.addListing = async (req, res) => {
                 for (const file of req.files) {
                     const fileName = await uploadToR2(file);
                     fileNames.push(fileName);
+                    console.log('FILENAME:', fileName);
                 }
+
             } catch (error) {
                 return res.status(500).json({ message: 'Error uploading files to R2', error: error.message });
             }
         }
-
+        console.log('-------------------------------------', fileNames)
         const listing = new Listing({
             title,
             description,
@@ -65,10 +67,10 @@ exports.addListing = async (req, res) => {
             rent,
             location,
             status,
-            images: fileNames,
+            media: fileNames,
             user: userId 
         });
-
+        
         console.log("Saving listing:", listing);
 
         const savelisting = await listing.save();
