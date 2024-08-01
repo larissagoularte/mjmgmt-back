@@ -15,7 +15,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 
 app.use(cors({
-    origin: 'https://mjmgmt-front.pages.dev',
+    origin: 'https://mj-management.com',
     credentials: true,
     allowedHeaders: "Content-Type, Accept, Origin, Timestamp",
     preflightContinue: false,
