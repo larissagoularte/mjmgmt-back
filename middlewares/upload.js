@@ -28,10 +28,9 @@ const uploadToR2 = async (file) => {
     try {
         const command = new PutObjectCommand(uploadParams);
         const data = await s3.send(command);
-        console.log(`File uploaded successfully: ${data}`);
-        const fileUrl = `${process.env.R2_PUBLIC_ENDPOINT}/${uniqueFilename}`;
+        console.log(`File uploaded successfully: ${uniqueFilename}`);
 
-        return fileUrl;
+        return uniqueFilename;
     } catch (err) {
         console.log(`${process.env.R2_ENDPOINT}/${uniqueFilename}`);
         throw new Error(`Error uploading file to R2: ${err.message}`);
