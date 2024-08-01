@@ -4,6 +4,7 @@ const Blacklist = require("../models/blacklist");
 
 const isLoggedIn = (req, res, next) => {
   console.log('isLoggedIn middleware called'); // Debugging output
+  console.log(user);
   passport.authenticate('jwt', { session: false }, (err, user, info) => {
     if (err) return next(err);
     console.log('erro?????????')
