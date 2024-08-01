@@ -46,9 +46,9 @@ exports.addListing = async (req, res) => {
             return res.status(401).json({ error: 'Unauthorized' });
         }
 
+        const fileUrls = [];
         if (req.files && Array.isArray(req.files)) {
             try {
-                const fileUrls = [];
                 for (const file of req.files) {
                     const fileUrl = await uploadToR2(file);
                     fileUrls.push(fileUrl);
@@ -65,7 +65,7 @@ exports.addListing = async (req, res) => {
             rent,
             location,
             status,
-            images: imageUrls,
+            images: fileUrls,
             user: userId 
         });
 
