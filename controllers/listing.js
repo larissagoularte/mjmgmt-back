@@ -2,7 +2,7 @@ const Listing = require("../models/listing");
 const User = require("../models/user");
 const fs = require('fs');
 const path = require('path');
-
+const { uploadToR2 } = require('../middlewares/upload');
 
 exports.addListing = async (req, res) => {
     const { title, description, rent, rooms, location, status } = req.body;
