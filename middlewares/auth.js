@@ -3,11 +3,11 @@ const passport = require('passport');
 const Blacklist = require("../models/blacklist");
 
 const isLoggedIn = (req, res, next) => {
-  console.log('isLoggedIn middleware called'); // Debugging output
-  console.log(user);
+  console.log('isLoggedIn middleware called'); 
   passport.authenticate('jwt', { session: false }, (err, user, info) => {
+    console.log('erro?????????', err)
     if (err) return next(err);
-    console.log('erro?????????')
+    console.log('erro user', user);
     if (!user) return res.status(401).json({ error: "Unauthorized" });
     req.user = user;
     console.log(user);
