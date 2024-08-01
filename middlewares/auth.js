@@ -6,8 +6,10 @@ const isLoggedIn = (req, res, next) => {
   console.log('isLoggedIn middleware called'); // Debugging output
   passport.authenticate('jwt', { session: false }, (err, user, info) => {
     if (err) return next(err);
+    console.log('erro?????????')
     if (!user) return res.status(401).json({ error: "Unauthorized" });
     req.user = user;
+    console.log(user);
     next();
   })(req, res, next);
 };

@@ -80,8 +80,8 @@ exports.login = async (req, res) => {
                 }
             );
 
-            res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
-
+            res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: "lax", });
+            
             return res.status(200).json({ id: user._id, email: user.email, name: user.name });
         } else {
             return res.status(400).json({ error: "Invalid email or password." });
