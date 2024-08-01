@@ -27,7 +27,7 @@ const listingSchema = mongoose.Schema({
         required: true,
         enum: ['available', 'unavailable']
     },
-    images: [{
+    media: [{
         type: String
     }],
     user: {

@@ -46,7 +46,18 @@ exports.addListing = async (req, res) => {
             return res.status(401).json({ error: 'Unauthorized' });
         }
 
-        const imagePaths = req.files.map(file => `/uploads/${file.filename}`);
+        if (req.files && Array.isArray(req.files)) {
+            try {
+                const fileUrls = [];
+                for (const file of req.files) {
+                    const fileUrl = await uploadToR2(file);
+                    fileUrls.push(fileUrl);
+                }
+                listingData.basicInfo.media = fileUrls;
+            } catch (error) {
+                return res.status(500).json({ message: 'Error uploading files to R2', error: error.message });
+            }
+        }
 
         const listing = new Listing({
             title,
@@ -55,7 +66,7 @@ exports.addListing = async (req, res) => {
             rent,
             location,
             status,
-            images: imagePaths,
+            images: imageUrls,
             user: userId 
         });
 
