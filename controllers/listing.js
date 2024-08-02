@@ -154,19 +154,13 @@ exports.fetchListingById = async (req, res) => {
             console.error(`Listing not found: ${listingId}`);
             return res.status(404).json({ error: 'Listing not found.' });
         }
-
-        const userId = req.user?._id;
         
-        //if (listing.status === 'available') {
-        //    return res.status(200).json(listing);
-        //}
-
-
-       /// if (!userId) {
-       ///     console.error('Unauthorized access attempt to unavailable listing.');
-       ///     return res.status(401).json({ error: 'Unauthorized' });
-       ///}
-
+        if (listing.status === 'unavailable') {
+            const token = req.cookies.token; 
+            if (!token) {
+                return res.status(401).json({ message: 'Unauthorized - Listing Unavailable'});
+            }
+        }
 
         res.status(200).json(listing);
     } catch (error) {
