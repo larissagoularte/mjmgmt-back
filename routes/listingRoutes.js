@@ -9,7 +9,7 @@ router.get('/', isAuthenticated, listingController.fetchListings);
 router.get('/:id', listingController.fetchListingById);
 router.put('/:id', isAuthenticated, upload.array('media', 20), listingController.updateListing);
 router.delete('/:id', isAuthenticated, listingController.removeListing);
-router.delete('/:id/images/:image', isAuthenticated, listingController.removeImage);
+router.delete('/:id/:imageName', isAuthenticated, listingController.removeImage);
 
 
 module.exports=router

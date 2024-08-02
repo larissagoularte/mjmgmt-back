@@ -3,25 +3,38 @@ const User = require("../models/user");
 const fs = require('fs');
 const path = require('path');
 const { uploadToR2 } = require('../middlewares/upload');
+const { S3Client, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+
+const s3 = new S3Client({
+    region: 'auto',
+    endpoint: process.env.R2_ENDPOINT,
+    credentials: {
+        accessKeyId: process.env.R2_ACCESS_KEY_ID,
+        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY
+    }
+});
 
 exports.addListing = async (req, res) => {
     const { title, description, rent, rooms, location, status } = req.body;
 
     try {
         if (!title || !description || !rent || !rooms || !location || !status) {
-            console.log("Missing fields:", { title, description, rent, rooms, location, status });
-            console.log(title)
-            console.log(description)
-            console.log(rent)
-            console.log(rooms)
-            console.log(location)
-            console.log(status)
-
+            ///////////////DEBUG/////////////
+            //console.log("Missing fields:", { title, description, rent, rooms, location, status });
+            //console.log(title)
+            //console.log(description)
+            //console.log(rent)
+            //console.log(rooms)
+            //console.log(location)
+            //console.log(status)
             return res.status(400).json({ error: 'All fields are required.' });
         }
 
         if (typeof title !== 'string' || typeof description !== 'string' || typeof location !== 'string' || typeof Number(rent) !== 'number' || isNaN(Number(rent))) {
-            console.log("Invalid data types:", { title, description, location, rent });
+            
+            ///////////////DEBUG/////////////
+            //console.log("Invalid data types:", { title, description, location, rent });
+            
             return res.status(400).json({ error: 'Invalid data types.' });
         }
 
@@ -29,12 +42,17 @@ exports.addListing = async (req, res) => {
         const validStatus = ['available', 'unavailable'];
 
         if (!validRooms.includes(rooms) || !validStatus.includes(status)) {
-            console.error("Invalid enum values:", { rooms, status });
+    
+            ///////////////DEBUG/////////////
+            //console.error("Invalid enum values:", { rooms, status });
+            
             return res.status(400).json({ error: 'Invalid enum values.' });
         }
 
         if (!req.files || req.files.length === 0) {
-            console.error("No images provided");
+            
+            ///////////////DEBUG/////////////
+            //console.error("No images provided");
 
             return res.status(400).json({ error: 'At least one image is required.' });
         }
@@ -42,7 +60,10 @@ exports.addListing = async (req, res) => {
         const userId = req.user._id; 
 
         if (!userId) {
-            console.error("Unauthorized");
+            
+            ///////////////DEBUG/////////////
+            //console.error("Unauthorized");
+            
             return res.status(401).json({ error: 'Unauthorized' });
         }
 
@@ -52,14 +73,15 @@ exports.addListing = async (req, res) => {
                 for (const file of req.files) {
                     const fileName = await uploadToR2(file);
                     fileNames.push(fileName);
-                    console.log('FILENAME:', fileName);
+                    
+                    ///////////////DEBUG/////////////
+                    //console.log('FILENAME:', fileName);
                 }
 
             } catch (error) {
                 return res.status(500).json({ message: 'Error uploading files to R2', error: error.message });
             }
         }
-        console.log('-------------------------------------', fileNames)
         const listing = new Listing({
             title,
             description,
@@ -71,27 +93,36 @@ exports.addListing = async (req, res) => {
             user: userId 
         });
         
-        console.log("Saving listing:", listing);
+        ///////////////DEBUG/////////////
+        //console.log("Saving listing:", listing);
 
         const savelisting = await listing.save();
 
-        console.log("Listing saved:", savelisting);
+        ///////////////DEBUG/////////////
+       //console.log("Listing saved:", savelisting);
 
 
         const user = await User.findById(userId);
         if (!user) {
-            console.error("User not found:", userId);
+
+            ///////////////DEBUG/////////////
+            //console.error("User not found:", userId);
+            
             return res.status(404).json({ error: 'User not found.' });
         }
 
         user.listings.push(savelisting._id);
         await user.save();
 
-        console.log("User updated with new listing");
+        ///////////////DEBUG/////////////
+        //console.log("User updated with new listing");
 
         res.status(201).json(savelisting);
     } catch (error) {
-        console.error("Internal server error:", error);
+
+        ///////////////DEBUG/////////////
+        //console.error("Internal server error:", error);
+        
         res.status(500).json({ message: 'Internal server error.' });
     }
 };
@@ -106,7 +137,10 @@ exports.fetchListings = async (req, res) => {
         }
         res.json(listings);
     } catch (error) {
-        console.error('Error fetching listings:', error);
+        
+        ///////////////DEBUG/////////////
+        //console.error('Error fetching listings:', error);
+        
         res.status(500).json({ error: 'Internal server error' });
     }
 };
@@ -154,27 +188,32 @@ exports.updateListing = async (req, res) => {
             return res.status(403).json({ error: 'Unauthorized' });
         }
 
-        let imagePaths = listing.images; 
+        let imageNames = listing.media;
+
         const { imagesRemove } = JSON.parse(req.body.data);
 
-        await Promise.all(imagesRemove.map(async (image) => {
+        await Promise.all(imagesRemove.map(async (imageName) => {
             try {
-                const imagePath = path.isAbsolute(image) ? image : path.join(UPLOADS_DIR, image);
-                if (fs.existsSync(imagePath)) {
-                    await fs.promises.unlink('../' + imagePath);
-                    console.log(`Deleted image: ${imagePath}`);
-                } else {
-                    console.log(`Image not found at path: ${imagePath}`);
-                }
+                const imageKey = decodeURIComponent(imageName);
+
+                const deleteParams = {
+                    Bucket: process.env.R2_BUCKET_NAME,
+                    Key: imageKey
+                };
+
+                const command = new DeleteObjectCommand(deleteParams);
+                await s3.send(command);
+
+                console.log(`Deleted image with key: ${imageKey}`);
             } catch (err) {
-                console.error(`Failed to delete image ${image}:`, err);
-            }
+                console.error(`Failed to delete image ${imageName}:`, err);
+                return res.status(500).send({ error: 'Failed to remove image from R2.' });            }
         }));
 
-        imagePaths = imagePaths.filter(img => !imagesRemove.includes(img));
+        imageNames = imageNames.filter(img => !imagesRemove.includes(img));
 
         if (req.files && req.files.length > 0) {
-            const newImages = req.files.map(file => `/uploads/${file.filename}`);
+            const newImages = req.files.map(file => file.filename);
             imagePaths = imagePaths.concat(newImages);
         }
 
@@ -183,7 +222,7 @@ exports.updateListing = async (req, res) => {
 
         const updatedData = {
             ...JSON.parse(req.body.data),
-            images: imagePaths
+            media: imageNames
         };
 
         if (updatedData.rooms && !validRooms.includes(updatedData.rooms)) {
@@ -204,7 +243,6 @@ exports.updateListing = async (req, res) => {
     }
 };
 
-const UPLOADS_DIR = path.join(__dirname, '../../uploads');
 
 exports.removeListing = async (req, res) => {
     try {
@@ -219,14 +257,24 @@ exports.removeListing = async (req, res) => {
             return res.status(403).send({ error: 'Nao autorizado' });
         }
 
-        await Promise.all(listing.images.map(async (image) => {
+        await Promise.all(listing.media.map(async (fileName) => {
             try {
-                const decodedImage = decodeURIComponent(image);
-                const imagePath = path.isAbsolute(image) ? image : path.join(UPLOADS_DIR, decodedImage);                console.log(`Deleting image at path: ${imagePath}`);
-                await fs.promises.unlink(imagePath);
-                console.log(`Deleted image: ${imagePath}`);
+                const imageKey = filename;
+
+                /////////DEBUG////////
+                console.log(`Deleting image with key: ${imageKey}`);
+
+                const deleteParams = {
+                    Bucket: process.env.R2_BUCKET_NAME,
+                    Key: imageKey
+                };
+
+                const command = new DeleteObjectCommand(deleteParams);
+                await s3.send(command);
+
+                console.log(`Deleted image with key: ${imageKey}`);
             } catch (err) {
-                console.error(`Failed to delete image ${image}:`, err);
+                console.error(`Failed to delete image ${fileName}:`, err);
             }
         }));
 
@@ -241,11 +289,14 @@ exports.removeListing = async (req, res) => {
 
 exports.removeImage = async (req, res) => {
     try{
-        const userId = req.user._id;
-        const {id, image} = req.params;
+        const userId = req.user._id.toString();
+        const {id, imageName} = req.params;
+        console.log('--------REMOVE IMAGE USER ID', userId)
+        
 
 
-        if (!image) {
+
+        if (!imageName) {
             return res.status(400).send({ error: 'Imagem path is required' });
         }
 
@@ -258,17 +309,22 @@ exports.removeImage = async (req, res) => {
             return res.status(403).send({ error: 'Unauthorized' });
         }
 
-        const decodedImage = decodeURIComponent(image);
-        const imagePath = path.isAbsolute(image) ? image : path.join(UPLOADS_DIR, decodedImage);
+        const imageKey = decodeURIComponent(imageName); 
         try {
-            await fs.promises.unlink(imagePath);
-            console.log(`Deleted image: ${imagePath}`);
+            // Delete image from R2
+            const deleteParams = {
+                Bucket: process.env.R2_BUCKET_NAME,
+                Key: imageKey
+            };
+            const command = new DeleteObjectCommand(deleteParams);
+            await s3.send(command);
+            console.log(`Deleted image with key: ${imageKey}`);
         } catch (err) {
-            console.error(`Failed to delete image ${imagePath}:`, err);
-            return res.status(500).send({ error: 'Failed to remove image.' });
+            console.error(`Failed to delete image ${imageKey}:`, err);
+            return res.status(500).send({ error: 'Failed to remove image from R2.' });
         }
 
-        listing.images = listing.images.filter(img => img !== image);
+        listing.media = listing.media.filter(img => img !== imageName);
         await listing.save();
 
         res.status(200).json({ error: 'Image succesffully removed.' });
